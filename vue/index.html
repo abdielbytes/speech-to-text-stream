@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Recognition App</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+  <div id="app">
+    <div>
+      <button @click="startRecognition" :disabled="recognitionStarted">Start</button>
+      <button @click="stopRecognition" :disabled="!recognitionStarted">Stop</button>
+    </div>
+  
+    <div v-if="loaderVisible" id="loader">Listening...</div>
+    <p id="finalTranscript">{{ finalText }}</p>
+    <p id="interimTranscript">{{ interimText }}</p>
+    <p id="errorMessage" v-if="error">{{ error }}</p>
+  </div>
+
+  <script>
+    const app = Vue.createApp({
+      data() {
+        return {
+          recognition: null,
+          recognitionStarted: false,
+          finalText: '',
+          interimText: '',
+          loaderVisible: false,
+          error: ''
+        };
+      },
+      mounted() {
+        // Check for SpeechRecognition support
+        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+        if (window.SpeechRecognition) {
+          this.recognition = new SpeechRecognition();
+          this.recognition.interimResults = true;
+          this.recognition.continuous = true;
+    
+          // Handle speech recognition results
+          this.recognition.addEventListener("result", (e) => {
+            this.handleRecognitionResult(e);
+          });
+    
+          // Handle recognition end
+          this.recognition.addEventListener("end", () => {
+            if (this.recognition.continuous && this.recognitionStarted) {
+              this.recognition.start();
+            }
+          });
+    
+          // Handle errors
+          this.recognition.addEventListener("error", (e) => {
+            this.error = 'Speech recognition error: ' + e.error;
+            this.recognitionStarted = false;
+            this.loaderVisible = false;
+          });
+        } else {
+          this.error = 'SpeechRecognition not supported by this browser.';
+        }
+      },
+      methods: {
+        startRecognition() {
+          if (!this.recognitionStarted && this.recognition) {
+            this.recognition.start();
+            this.recognitionStarted = true;
+            this.loaderVisible = true;
+            this.error = '';
+          }
+        },
+        stopRecognition() {
+          if (this.recognitionStarted && this.recognition) {
+            this.recognition.stop();
+            this.recognitionStarted = false;
+            this.loaderVisible = false;
+          }
+        },
+        handleRecognitionResult(e) {
+          let finalText = '';
+          let interimText = '';
+    
+          Array.from(e.results).forEach(result => {
+            if (result[0].isFinal) {
+              finalText += result[0].transcript;
+            } else {
+              interimText += result[0].transcript;
+            }
+          });
+    
+          this.finalText = finalText;
+          this.interimText = interimText;
+        }
+      }
+    });
+
+    app.mount('#app');
+  </script>
+  
+</body>
+</html>
