@@ -1,4 +1,4 @@
-// Select DOM elements
+// Select the DOM 
 const finalTranscript = document.getElementById("finalTranscript");
 const interimTranscript = document.getElementById("interimTranscript");
 const startBtn = document.getElementById("startBtn");
@@ -10,6 +10,9 @@ const errorMessage = document.getElementById("errorMessage");
 window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const recognition = new SpeechRecognition();
 recognition.interimResults = true;
+recognition.continuous = true;
+
+let recognitionStarted = false; 
 
 // Handle speech recognition results
 recognition.addEventListener("result", (e) => {
@@ -31,26 +34,32 @@ recognition.addEventListener("result", (e) => {
 
 // Handle recognition end
 recognition.addEventListener("end", () => {
-  if (recognition.continuous) {
+  if (recognition.continuous && recognitionStarted) {
     recognition.start();
   }
 });
 
 // Start button event listener
 startBtn.addEventListener("click", () => {
-  recognition.start();
-  startBtn.disabled = true;
-  stopBtn.disabled = false;
-  loader.style.display = 'block';
-  errorMessage.innerText = ''; // Clear any previous error message
+  if (!recognitionStarted) {
+    recognition.start();
+    recognitionStarted = true; 
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    loader.style.display = 'block';
+    errorMessage.innerText = ''; 
+  }
 });
 
 // Stop button event listener
 stopBtn.addEventListener("click", () => {
-  recognition.stop();
-  startBtn.disabled = false;
-  stopBtn.disabled = true;
-  loader.style.display = 'none';
+  if (recognitionStarted) {
+    recognition.stop();
+    recognitionStarted = false; 
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    loader.style.display = 'none';
+  }
 });
 
 // Handle errors
