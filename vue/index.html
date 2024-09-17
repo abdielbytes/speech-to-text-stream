@@ -21,79 +21,89 @@
   </div>
 
   <script>
+    const { ref, onMounted } = Vue;
+
     const app = Vue.createApp({
-      data() {
-        return {
-          recognition: null,
-          recognitionStarted: false,
-          finalText: '',
-          interimText: '',
-          loaderVisible: false,
-          error: ''
-        };
-      },
-      mounted() {
-        // Check for SpeechRecognition support
-        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-        if (window.SpeechRecognition) {
-          this.recognition = new SpeechRecognition();
-          this.recognition.interimResults = true;
-          this.recognition.continuous = true;
-    
-          // Handle speech recognition results
-          this.recognition.addEventListener("result", (e) => {
-            this.handleRecognitionResult(e);
-          });
-    
-          // Handle recognition end
-          this.recognition.addEventListener("end", () => {
-            if (this.recognition.continuous && this.recognitionStarted) {
-              this.recognition.start();
-            }
-          });
-    
-          // Handle errors
-          this.recognition.addEventListener("error", (e) => {
-            this.error = 'Speech recognition error: ' + e.error;
-            this.recognitionStarted = false;
-            this.loaderVisible = false;
-          });
-        } else {
-          this.error = 'SpeechRecognition not supported by this browser.';
-        }
-      },
-      methods: {
-        startRecognition() {
-          if (!this.recognitionStarted && this.recognition) {
-            this.recognition.start();
-            this.recognitionStarted = true;
-            this.loaderVisible = true;
-            this.error = '';
-          }
-        },
-        stopRecognition() {
-          if (this.recognitionStarted && this.recognition) {
-            this.recognition.stop();
-            this.recognitionStarted = false;
-            this.loaderVisible = false;
-          }
-        },
-        handleRecognitionResult(e) {
-          let finalText = '';
-          let interimText = '';
-    
+      setup() {
+        const recognition = ref(null);
+        const recognitionStarted = ref(false);
+        const finalText = ref('');
+        const interimText = ref('');
+        const loaderVisible = ref(false);
+        const error = ref('');
+
+        const handleRecognitionResult = (e) => {
+          let final = '';
+          let interim = '';
+
           Array.from(e.results).forEach(result => {
             if (result[0].isFinal) {
-              finalText += result[0].transcript;
+              final += result[0].transcript;
             } else {
-              interimText += result[0].transcript;
+              interim += result[0].transcript;
             }
           });
+
+          finalText.value = final;
+          interimText.value = interim;
+        };
+
+        const startRecognition = () => {
+          if (!recognitionStarted.value && recognition.value) {
+            recognition.value.start();
+            recognitionStarted.value = true;
+            loaderVisible.value = true;
+            error.value = '';
+          }
+        };
+
+        const stopRecognition = () => {
+          if (recognitionStarted.value && recognition.value) {
+            recognition.value.stop();
+            recognitionStarted.value = false;
+            loaderVisible.value = false;
+          }
+        };
+
+        onMounted(() => {
+          // Check for SpeechRecognition support
+          window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
-          this.finalText = finalText;
-          this.interimText = interimText;
-        }
+          if (window.SpeechRecognition) {
+            recognition.value = new SpeechRecognition();
+            recognition.value.interimResults = true;
+            recognition.value.continuous = true;
+
+            // Handle speech recognition results
+            recognition.value.addEventListener("result", handleRecognitionResult);
+
+            // Handle recognition end
+            recognition.value.addEventListener("end", () => {
+              if (recognition.value.continuous && recognitionStarted.value) {
+                recognition.value.start();
+              }
+            });
+
+            // Handle errors
+            recognition.value.addEventListener("error", (e) => {
+              error.value = 'Speech recognition error: ' + e.error;
+              recognitionStarted.value = false;
+              loaderVisible.value = false;
+            });
+          } else {
+            error.value = 'SpeechRecognition not supported by this browser.';
+          }
+        });
+
+        return {
+          recognitionStarted,
+          finalText,
+          interimText,
+          loaderVisible,
+          error,
+          startRecognition,
+          stopRecognition
+        };
       }
     });
 
